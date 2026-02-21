@@ -54,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final uid = credential.user!.uid;
       final cardNumber = _cardNumberCtrl.text;
 
-      // NEVER store CVV – only derive last4, expiry, brand.
+      // NEVER store CVV -- only derive last4, expiry, brand.
       await _firestoreService.createUserProfile(
         uid: uid,
         email: _emailCtrl.text.trim(),
@@ -126,8 +126,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Dummy Card Information',
+                'Card Information',
                 style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Dummy card for demo purposes only',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -172,14 +179,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 32),
               FilledButton(
                 onPressed: _loading ? null : _submit,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
                 child: _loading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Text('Register'),
               ),

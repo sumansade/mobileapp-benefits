@@ -7,6 +7,7 @@ import 'screens/checkout_screen.dart';
 import 'screens/confirmation_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/redemptions_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/welcome_screen.dart';
 
@@ -46,6 +47,10 @@ GoRouter buildRouter() {
         builder: (context, state) => const HomeScreen(),
         routes: [
           GoRoute(
+            path: 'redemptions',
+            builder: (context, state) => const RedemptionsScreen(),
+          ),
+          GoRoute(
             path: 'benefit/:benefitId',
             builder: (context, state) {
               final benefitId = state.pathParameters['benefitId']!;
@@ -61,7 +66,22 @@ GoRouter buildRouter() {
               ),
               GoRoute(
                 path: 'confirmation',
-                builder: (context, state) => const ConfirmationScreen(),
+                builder: (context, state) {
+                  final extra = state.extra;
+                  String? confirmationId;
+                  String? benefitTitle;
+                  String? redemptionType;
+                  if (extra is Map<String, dynamic>) {
+                    confirmationId = extra['confirmationId'] as String?;
+                    benefitTitle = extra['benefitTitle'] as String?;
+                    redemptionType = extra['redemptionType'] as String?;
+                  }
+                  return ConfirmationScreen(
+                    confirmationId: confirmationId,
+                    benefitTitle: benefitTitle,
+                    redemptionType: redemptionType,
+                  );
+                },
               ),
             ],
           ),

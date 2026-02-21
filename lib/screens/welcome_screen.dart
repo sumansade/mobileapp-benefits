@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme.dart';
+
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -14,34 +16,48 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.card_giftcard, size: 80, color: theme.colorScheme.primary),
+              // Logo
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.visaBlue.withAlpha(15),
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 64,
+                  height: 64,
+                  errorBuilder: (_, e, st) => Icon(
+                    Icons.credit_card,
+                    size: 64,
+                    color: AppColors.visaBlue,
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               Text(
-                'Benefits MVP',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                'Benefits',
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  color: AppColors.visaBlue,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Unlock exclusive card benefits and rewards.',
+                'Unlock exclusive card benefits\nand premium rewards.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 48),
-              FilledButton.tonal(
+              FilledButton(
                 onPressed: () => context.go('/register'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
                 child: const Text('Create Account'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.go('/login'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
                 child: const Text('Sign In'),
               ),
             ],

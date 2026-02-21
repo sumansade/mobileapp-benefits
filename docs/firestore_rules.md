@@ -12,6 +12,11 @@ service cloud.firestore {
     // Only the authenticated user can read/write their own profile.
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // Saved Benefits subcollection
+      match /savedBenefits/{benefitId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // ───── Benefits ─────

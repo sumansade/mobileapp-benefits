@@ -1,22 +1,26 @@
 # Benefits MVP
 
-A Flutter mobile app (Material 3) demonstrating card-linked benefits with Firebase Authentication and Cloud Firestore.
+A **Bold Visa-style** Flutter mobile app (Material 3) with premium UX, Firebase Authentication, and Cloud Firestore.
 
 ## Features
 
+- **Visa-style premium design** — Visa blue (#1A1F71) + gold accent (#F7B600), gradient hero card, editorial benefit cards with images, collapsing headers, and micro-interactions
 - **Email/password authentication** via Firebase Auth
 - **Dummy card registration** — collects card number, expiry, CVV at sign-up; stores only last 4 digits, expiry, and inferred brand (VISA/MC/AMEX/DISCOVER/OTHER). **CVV is never persisted.**
 - **Auth gate** — routes unauthenticated users to Welcome screen, authenticated users to Home
-- **Home screen** — masked card summary (`BRAND •••• LAST4`) + scrollable benefits list from Firestore
-- **Benefit detail** — full description, terms, and checkout button (when enabled)
-- **Dummy checkout** — creates an `orders` document in Firestore with status `CONFIRMED`
-- **Auto-seed** — on first launch, seeds 8 sample benefits into Firestore (idempotent via `_meta/seed`)
+- **Home screen** — premium gradient card header with tier label, category filter chips (All/Travel/Dining/Protection/Lifestyle/Entertainment), editorial benefit cards with image banners and bookmark icons
+- **Saved benefits** — bookmark benefits for quick access with Saved filter; stored in `users/{uid}/savedBenefits/{benefitId}` subcollection
+- **Benefit detail** — collapsing SliverAppBar image header, value props, how-to-redeem steps, eligibility, FAQ accordions, terms accordion, sticky bottom CTA
+- **Polished checkout** — Review → Processing → Confirmation flow with readable confirmation ID (ABCD-1234), mock voucher codes for voucher-type benefits
+- **My Redemptions** — dedicated screen querying user orders with premium cards showing confirmationId, status pill, and date; tap for bottom-sheet details
+- **Auto-seed** — on first launch, seeds 10 sample Visa-style benefits with rich data (images, value props, FAQs, etc.) via idempotent `_meta/seed` transaction
 
 ## Architecture
 
 ```
 lib/
-├── main.dart              # App entry point, Firebase init, Material 3 theme
+├── main.dart              # App entry point, Firebase init, error handling
+├── theme.dart             # Visa-style Material 3 theme (colors, typography, surfaces)
 ├── router.dart            # go_router config with auth-gate redirect
 ├── screens/
 │   ├── welcome_screen.dart
@@ -25,14 +29,22 @@ lib/
 │   ├── home_screen.dart
 │   ├── benefit_detail_screen.dart
 │   ├── checkout_screen.dart
-│   └── confirmation_screen.dart
+│   ├── confirmation_screen.dart
+│   └── redemptions_screen.dart
+├── widgets/
+│   ├── app_logo.dart          # Branded logo widget
+│   ├── premium_card.dart      # Gradient hero card for Home
+│   └── benefit_card.dart      # Editorial benefit card with image + bookmark
 ├── services/
 │   ├── auth_service.dart       # Firebase Auth wrapper
-│   ├── firestore_service.dart  # Firestore CRUD for users, benefits, orders
-│   └── seed_service.dart       # First-run benefit seeding
+│   ├── firestore_service.dart  # Firestore CRUD for users, benefits, orders, saved
+│   └── seed_service.dart       # First-run benefit seeding (10 rich benefits)
 └── utils/
     ├── validators.dart    # Form field validators
     └── card_utils.dart    # Card brand inference, last-4 extraction, masked display
+assets/
+└── images/
+    └── logo.png           # Placeholder Visa-style logo
 ```
 
 ## Firestore Collections
@@ -40,8 +52,9 @@ lib/
 | Collection | Key Fields |
 |---|---|
 | `users/{uid}` | `email`, `cardLast4`, `cardExpiry`, `cardBrand`, `createdAt` |
-| `benefits/{benefitId}` | `title`, `description`, `category`, `terms`, `isCheckoutEnabled` |
-| `orders/{orderId}` | `uid`, `benefitId`, `status`, `createdAt` |
+| `users/{uid}/savedBenefits/{benefitId}` | `savedAt` (doc exists = saved) |
+| `benefits/{benefitId}` | `title`, `subtitle`, `description`, `category`, `imageUrl`, `terms`, `isCheckoutEnabled`, `ctaText`, `redemptionType`, `valueProps`, `howToRedeem`, `eligibility`, `faq` |
+| `orders/{orderId}` | `uid`, `benefitId`, `benefitTitle`, `status`, `confirmationId`, `redemptionType`, `createdAt` |
 | `_meta/seed` | `seeded` (boolean) |
 
 ## Setup
