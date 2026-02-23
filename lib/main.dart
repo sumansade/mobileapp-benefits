@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'router.dart';
+import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,18 +51,10 @@ class BenefitsMvpApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final router = buildRouter();
     return MaterialApp.router(
-      title: 'Benefits MVP',
+      title: 'Benefits',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        useMaterial3: true,
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        useMaterial3: true,
-        brightness: Brightness.dark,
-      ),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
       routerConfig: router,
     );
   }

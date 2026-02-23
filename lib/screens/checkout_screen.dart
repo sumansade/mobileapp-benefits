@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../theme.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key, required this.benefitId});
@@ -16,96 +19,265 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _authService = AuthService();
   final _firestoreService = FirestoreService();
 
-  bool _loading = false;
+  bool _loadingBenefit = true;
+  bool _processing = false;
   String? _error;
+  Map<String, dynamic>? _benefitData;
 
-  Future<void> _confirm() async {
-    final uid = _authService.currentUser?.uid;
-    if (uid == null) return;
+  @override
+  void initState() {
+    super.initState();
+    _loadBenefit();
+  }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<void> _loadBenefit() async {
     try {
-      await _firestoreService.createOrder(
-        uid: uid,
-        benefitId: widget.benefitId,
-      );
-      if (mounted) {
-        context.go('/home/benefit/${widget.benefitId}/confirmation');
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
+      final snap = await _firestoreService.getBenefit(widget.benefitId);
       if (mounted) {
         setState(() {
-          _loading = false;
+          _benefitData = snap.data();
+          _loadingBenefit = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loadingBenefit = false;
         });
       }
     }
   }
 
+  String _generateConfirmationId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const digits = '0123456789';
+    final rng = Random();
+    final letterPart =
+        List.generate(4, (_) => chars[rng.nextInt(chars.length)]).join();
+    final digitPart =
+        List.generate(4, (_) => digits[rng.nextInt(digits.length)]).join();
+    return '$letterPart-$digitPart';
+  }
+
+  Future<void> _confirm() async {
+    final uid = _authService.currentUser?.uid;
+    if (uid == null || _benefitData == null) return;
+
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+
+    // Simulate processing delay for premium feel
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+
+    try {
+      final confirmationId = _generateConfirmationId();
+      final title = _benefitData!['title'] as String? ?? '';
+      final redemptionType =
+          _benefitData!['redemptionType'] as String? ?? 'voucher';
+
+      await _firestoreService.createOrder(
+        uid: uid,
+        benefitId: widget.benefitId,
+        benefitTitle: title,
+        redemptionType: redemptionType,
+        confirmationId: confirmationId,
+      );
+
+      if (mounted) {
+        context.go(
+          '/home/benefit/${widget.benefitId}/confirmation',
+          extra: {
+            'confirmationId': confirmationId,
+            'benefitTitle': title,
+            'redemptionType': redemptionType,
+          },
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _processing = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_loadingBenefit) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Checkout')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_processing) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: CircularProgressIndicator(
+                  strokeWidth: 4,
+                  color: AppColors.visaBlue,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text('Processing your redemption...',
+                  style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text('Please wait',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final title = _benefitData?['title'] as String? ?? 'Benefit';
+    final description = _benefitData?['description'] as String? ?? '';
+    final ctaText = _benefitData?['ctaText'] as String? ?? 'Confirm';
+    final redemptionType =
+        _benefitData?['redemptionType'] as String? ?? 'voucher';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      appBar: AppBar(title: const Text('Review & Confirm')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(
-              Icons.receipt_long,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
+            // Benefit summary card
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    Text(description,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        redemptionType.toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.goldDark,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Confirm Redemption',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
+            const SizedBox(height: 16),
+
+            // What happens next
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: theme.colorScheme.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Text('What happens next',
+                            style: theme.textTheme.titleSmall),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _nextStepItem(context, '1',
+                        'Your redemption will be confirmed instantly'),
+                    _nextStepItem(
+                        context, '2', 'You\'ll receive a confirmation ID'),
+                    _nextStepItem(context, '3',
+                        'View details anytime in My Redemptions'),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'You are about to redeem this benefit. This is a dummy checkout for MVP purposes.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
+
             if (_error != null) ...[
               const SizedBox(height: 16),
               Card(
-                color: Theme.of(context).colorScheme.errorContainer,
+                color: theme.colorScheme.errorContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     _error!,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      color: theme.colorScheme.onErrorContainer,
                     ),
                   ),
                 ),
               ),
             ],
-            const Spacer(),
-            FilledButton(
-              onPressed: _loading ? null : _confirm,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
-              child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Confirm'),
-            ),
           ],
         ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: FilledButton(
+            onPressed: _confirm,
+            child: Text(ctaText),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _nextStepItem(BuildContext context, String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: AppColors.visaBlue.withAlpha(20),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  color: AppColors.visaBlue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text)),
+        ],
       ),
     );
   }
